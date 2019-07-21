@@ -1,0 +1,17 @@
+h1 {
+  color: blue;
+  font-family: verdana;
+  font-size: 300%;
+}
+
+textarea {
+    outline: none;
+    border-radius: 25px;
+    background-color: #000;
+    border: 3px solid purple;
+    color: #00ff00;
+    padding: 8px;
+    font-family: courier new;
+    resize: none;
+    box-shadow: 0 0 10px 5px #000;
+}

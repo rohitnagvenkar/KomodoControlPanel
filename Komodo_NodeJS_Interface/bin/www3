@@ -1,0 +1,370 @@
+const express = require('express');
+const app = express();
+const http = require('http').Server(app);
+const bodyParser = require('body-parser');
+const io = require('socket.io')(http);
+const port = 8080
+
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(express.static('public'));
+
+
+var mysql = require('mysql');
+var dbconn = false;
+var roomNames = new Array(10);
+var roomDecision = new Array(10);
+var roomCount = 0;
+
+var con = mysql.createConnection({
+    host: "localhost",
+    port: 3306,
+    user: "root",
+    password: "password"
+});
+
+con.connect(function(err) {
+    if(err) throw err;
+    console.log("Connected!");
+    con.query("CREATE DATABASE IF NOT EXISTS mydb", function (err, result) {
+    if (err) throw err;
+        dbconn = true;
+        console.log("Database created");
+    });
+    con.query("CREATE  TABLE IF NOT EXISTS mydb.Members (mid INT  AUTO_INCREMENT PRIMARY KEY,username VARCHAR(150) NOT NULL,password VARCHAR(255),email VARCHAR(255))", function (err, result) {
+    if (err) throw err;
+        dbconn = true;
+        console.log("Table created");
+    });
+});
+
+
+app.get('/', function(req, res) {
+    res.render('index.ejs');
+});
+
+app.post('/auth', (req, res) => {
+  const { username, password } = req.body;
+
+  if (true) {
+    io.emit('is_online', '🔵 <i>' + username + ' join the chat..</i>');
+    res.send('OK'); // ALL GOOD
+  } else {
+    res.status(400).send('You need to provide Username & password'); // BAD REQUEST
+  }
+});
+
+//everyone
+io.sockets.on('connection', function(socket) {
+
+    socket.on('username_guest', function(username) {
+        socket.username = username;
+    });
+
+    socket.on('username', function(username) {
+        socket.username = username;
+        io.emit('is_online', '🔵 <i>' + socket.username + ' join the chat..</i>');
+    });
+
+    socket.on('disconnect', function(username) {
+        io.emit('is_online', '🔴 <i>' + socket.username + ' left the chat..</i>');
+    })
+
+    socket.on('chat_message', function(message) {
+        io.emit('chat_message', '<strong>' + socket.username + '</strong>: ' + message);
+    });
+
+    socket.on('Welcome', function(message) {
+        if(dbconn == true && message == "Connected?"){
+            message = "Connected!!\nDatabase Created!!";
+            io.emit('Welcome', message);
+        }else{
+            message = "Database error";
+            io.emit('Welcome', message);
+        }
+    });
+
+    socket.on('DBQueryLogin', function(data) {
+        exists = false;
+        var squery = "SELECT * FROM mydb.Members WHERE username = ? AND password = ?";
+        con.query(squery, [data.un, data.pwd], function (err, result) {
+        if (err) throw err;
+            console.log("Query success");
+            if (result.length > 0){
+                io.emit('DBQueryLoginReply', {check: "True", un: data.un});
+            }else{
+                io.emit('DBQueryLoginReply', {check: "False", un: data.un});
+            }
+        });
+     });
+
+    socket.on('DBQueryRegister', function(data) {
+        exists = false;
+        var squery = "SELECT * FROM mydb.Members WHERE username = ? AND password = ?";
+        con.query(squery, [data.un, data.pwd], function (err, result) {
+        if (err) throw err;
+            console.log("Query success");
+            if (result.length > 0){
+                io.emit('DBQueryRegisterReply', {check: "False"});
+            }else{
+                var squery = "INSERT INTO mydb.Members (username, password, email) VALUES (?,?,?)";
+                con.query(squery, [data.un, data.pwd, data.email], function (err, result) {
+                if (err) throw err;
+                    console.log("Query success");
+                    io.emit('DBQueryRegisterReply', {check: "True", un: data.un});
+                });
+            }
+        });
+     });
+
+    socket.on('createRoom', function(room) {
+        var check = false;
+        check = roomNames.includes(room.name);
+        if(check == true){
+            socket.join(room.name);
+            io.sockets.in(room.name).emit('message', '\nwhat is going on, party people?');
+            console.log("Room exists");
+        }else{
+            roomNames[roomCount] = room.name;
+            roomDecision[roomCount] = room.decision;
+            roomCount++;
+            socket.join(room.name);
+            io.sockets.in(room.name).emit('message', '\nwhat is going on, party people?');
+            console.log("Room created");
+        }
+     });
+
+    socket.on('joinExistingRooms', function(room) {
+        var check1 = false;
+        check1 = roomNames.includes(room);
+        if(check1 == true){
+            socket.join(room);
+            var indx = roomNames.indexOf(room);
+            io.sockets.in(room).emit('joinExistingRooms_Decision', {message:"\nwhat is going on, party people?", decision: roomDecision[indx]});
+            console.log("room exists joining");
+        }
+        else{
+            console.log("room doesn't exists");
+            io.emit('message', "\nRoom doesn't exists. Try again");
+        }
+     });
+
+    socket.on('komodo_createAsset', function(message) {
+        var request = require('request');
+
+        // User and password specified like so: node index.js username password.
+        let username = message.acusername;
+        let password = message.acpassword;
+        let options;
+
+        if(message.accommand == "getbalance"){
+            options = {
+                url: "http://" + message.aclocalhost + ":" + message.acport + "/",
+                method: "post",
+                headers:
+                {
+                 "content-type": "text/plain"
+                },
+                auth: {
+                    user: username,
+                    pass: password
+                },
+                body: JSON.stringify( {"jsonrpc": "1.0", "id": "curltest", "method": "getbalance", "params": ["", 6] })
+            };
+            request(options, (error, response, body) => {
+                if (error) {
+                    console.error('An error has occurred: ', error);
+                        io.emit('komodo_createAssetReply', "\nError\n" + error);
+                } else {
+                    console.log('Post successful: response: ', JSON.parse(body).result);
+                    if (body.length > 0){
+                        io.emit('komodo_createAssetReply', "\nConnection successful!!");
+                    }
+                    else{
+                        io.emit('komodo_createAssetReply', "\nSomething is Wrong!!");
+                    }
+                }
+            });
+        }else if(message.accommand == "getnetworkinfo"){
+            options = {
+                url: "http://" + message.aclocalhost + ":" + message.acport + "/",
+                method: "post",
+                headers:
+                {
+                 "content-type": "text/plain"
+                },
+                auth: {
+                    user: username,
+                    pass: password
+                },
+                body: JSON.stringify( {"jsonrpc": "1.0", "id": "curltest", "method": "getnetworkinfo", "params": [] })
+            };
+            request(options, (error, response, body) => {
+                if (error) {
+                    console.error('An error has occurred: ', error);
+                        io.emit('komodo_createAssetReply', "\nError\n" + error);
+                } else {
+                    console.log('Post successful: response: ', JSON.parse(body).result);
+                    if (body.length > 0){
+                        io.emit('komodo_createAssetReply', "\n"+body+"\n");
+                    }
+                    else{
+                        io.emit('komodo_createAssetReply', "\nSomething is Wrong!!");
+                    }
+                }
+            });
+        }else if(message.accommand == "getbalanceR"){
+            options = {
+                url: "http://" + message.aclocalhost + ":" + message.acport + "/",
+                method: "post",
+                headers:
+                {
+                 "content-type": "text/plain"
+                },
+                auth: {
+                    user: username,
+                    pass: password
+                },
+                body: JSON.stringify( {"jsonrpc": "1.0", "id": "curltest", "method": "getbalance", "params": ["", 6] })
+            };
+            request(options, (error, response, body) => {
+                if (error) {
+                    console.error('An error has occurred: ', error);
+                        io.emit('komodo_createAssetReply', "\nError\n" + error);
+                } else {
+                    console.log('Post successful: response: ', JSON.parse(body).result);
+                    if (body.length > 0){
+                        io.emit('komodo_createAssetReply', "\nYour Balance: "+JSON.parse(body).result+"\n");
+                    }
+                    else{
+                        io.emit('komodo_createAssetReply', "\nSomething is Wrong!!");
+                    }
+                }
+            });
+        }else if(message.accommand == "getwalletinfo"){
+            options = {
+                url: "http://" + message.aclocalhost + ":" + message.acport + "/",
+                method: "post",
+                headers:
+                {
+                 "content-type": "text/plain"
+                },
+                auth: {
+                    user: username,
+                    pass: password
+                },
+                body: JSON.stringify( {"jsonrpc": "1.0", "id": "curltest", "method": "getwalletinfo", "params": [] })
+            };
+            request(options, (error, response, body) => {
+                if (error) {
+                    console.error('An error has occurred: ', error);
+                        io.emit('komodo_createAssetReply', "\nError\n" + error);
+                } else {
+                    console.log('Post successful: response: ', JSON.parse(body).result);
+                    if (body.length > 0){
+                        io.emit('komodo_createAssetReply', "\n" + body + "\n");
+                    }
+                    else{
+                        io.emit('komodo_createAssetReply', "\nSomething is Wrong!!");
+                    }
+                }
+            });
+        }else if(message.accommand == "getnewaddress") {
+                    options = {
+                        url: "http://" + message.aclocalhost + ":" + message.acport + "/",
+                        method: "post",
+                        headers:
+                        {
+                         "content-type": "text/plain"
+                        },
+                        auth: {
+                            user: username,
+                            pass: password
+                        },
+                        body: JSON.stringify( {"jsonrpc": "1.0", "id": "curltest", "method": "getnewaddress", "params": [] })
+                    };
+                    request(options, (error, response, body) => {
+                        if (error) {
+                            console.error('An error has occurred: ', error);
+                                io.emit('komodo_createAssetReply', "\nError\n" + error);
+                        } else {
+                            console.log('Post successful: response: ', JSON.parse(body).result);
+                            if (body.length > 0){
+                                io.emit('komodo_createAssetReply', "\n" + JSON.parse(body).result + "\n");
+                            }
+                            else{
+                                io.emit('komodo_createAssetReply', "\nSomething is Wrong!!");
+                            }
+                        }
+                    });
+            }else if(message.accommand == "sendtoaddress") {
+                var myName = message.acaddress;
+                '"' + myName + '"';
+                options = {
+                    url: "http://" + message.aclocalhost + ":" + message.acport + "/",
+                    method: "post",
+                    headers:
+                    {
+                     "content-type": "text/plain"
+                    },
+                    auth: {
+                        user: username,
+                        pass: password
+                    },
+                    body: JSON.stringify( {"jsonrpc": "1.0", "id": "curltest", "method": "sendtoaddress", "params": [message.acaddress, message.acKMD,"", ""] })
+                };
+                request(options, (error, response, body) => {
+                    if (error) {
+                        console.error('An error has occurred: ', error);
+                            io.emit('komodo_createAssetReply', "\nError\n" + error);
+                    } else {
+                        console.log('Post successful: response: ', body);
+                        if (body.length > 0){
+                            io.emit('komodo_createAssetReply', "\n" + JSON.parse(body).result + "\n");
+                        }
+                        else{
+                            io.emit('komodo_createAssetReply', "\nSomething is Wrong!!");
+                        }
+                    }
+                });
+        }else if(message.accommand == "stop") {
+            options = {
+                url: "http://" + message.aclocalhost + ":" + message.acport + "/",
+                method: "post",
+                headers:
+                {
+                 "content-type": "text/plain"
+                },
+                auth: {
+                    user: username,
+                    pass: password
+                },
+                body: JSON.stringify( {"jsonrpc": "1.0", "id": "curltest", "method": "stop", "params": [] })
+            };
+            request(options, (error, response, body) => {
+                if (error) {
+                    console.error('An error has occurred: ', error);
+                        io.emit('komodo_createAssetReply', "\nError\n" + error);
+                } else {
+                    console.log('Post successful: response: ', JSON.parse(body).result);
+                    if (body.length > 0){
+                        io.emit('komodo_createAssetReply', "\n" + body + "\n");
+                    }
+                    else{
+                        io.emit('komodo_createAssetReply', "\nSomething is Wrong!!");
+                    }
+                }
+            });
+        }else{}
+
+
+    });
+
+});
+
+
+
+const server = http.listen(port, '127.0.0.1', function() {
+    console.log('listening on *:8080');
+});
+
+

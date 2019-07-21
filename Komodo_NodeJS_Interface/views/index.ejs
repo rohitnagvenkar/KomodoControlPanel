@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+  <head>
+  <meta charset="ISO-8859-1">
+    <title>Komodo GUI on Node.js</title>
+
+    <link rel="stylesheet" type="text/css" href="/stylesheets/cmdconsole.css">
+    <link rel="stylesheet" type="text/css" href="/stylesheets/tabs.css">
+    <link rel="stylesheet" type="text/css" href="/stylesheets/tttstyle.css">
+    <link rel="stylesheet" type="text/css" href="/stylesheets/backgroundLoop.css">
+    <script src="../../socket.io/socket.io.js"></script>
+    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+    <script src="/javascripts/loginScript.js"></script>
+  </head>
+  <body>
+    <div class="fullscreen-bg">
+      <video loop muted autoplay poster="images/bitcoinImageLoop.jpg" class="fullscreen-bg__video">
+      <source src="images/bitcoinLoop.webm" type="video/webm">
+      </video>
+    </div>
+    <table style="width:100%">
+    <tr  valign="top">
+    	<td style="width:20%">
+
+    	</td>
+    	<td style="width:60%">
+    	<form>
+    		<textarea name="cmdconsole" id="message" rows="20" cols="70" style="width:98.4%"></textarea>
+    	</form>
+    		<div class="tab">
+      			<button class="tablinks" onclick="openCity(event, 'London')" id="defaultOpen">Login / Register</button>
+      			<button class="tablinks" onclick="openCity(event, 'Paris')" id="KomodoTAB">Komodo</button>
+      			<button class="tablinks" onclick="openCity(event, 'Tokyo')" id="TutorialTAB">Tutorial</button>
+      			<button class="tablinks" onclick="openCity(event, 'ChatAPP')" id="ChatAPPTAB">ChatAPP</button>
+      			<button class="tablinks" onclick="openCity(event, 'TTTgame')" id="TTTgameTAB">Tic-Tac-Toe</button>
+    		</div>
+
+    		<!-- Tab content -->
+    		<div id="London" class="tabcontent">
+      			<table style="width:100%">
+      			    <tr valign="top">
+                        <td style="width:50%">
+                            <h2>Login</h2>
+                            <p>login if you have an account.</p>
+                            <form action="/" method="POST" name="loginDatabase" onsubmit="myLoginFunction()">
+                            <br>
+                              <h2 style="display: inline">username:</h2><br>
+                              <input type="text" name="usernameLogin"><span id="usernameError" style="color:red; padding-left:10px"></span><br>
+                              <h2 style="display: inline">password:</h2><br>
+                              <input type="text" name="passwordLogin"><span id="passwordError" style="color:red; padding-left:10px"></span><br>
+                              <br>
+                              <input type="submit" value="Submit">
+                              <input type="reset" value="Clear">
+                            </form>
+
+                        </td>
+                        <td style="width:5%">
+                        <div class="vl"></div>
+                        </td>
+                        <td style="width:45%">
+                            <h2>Register</h2>
+                            <p>Register if you don't have an account.</p>
+                            <form action="/" method="POST" name="registerDatabase" onsubmit="myRegisterFunction()">
+                            <br>
+                              <h2 style="display: inline">username:</h2><br>
+                              <input type="text" name="usernameRegister"><br>
+                              <h2 style="display: inline">password:</h2><br>
+                              <input type="text" name="passwordRegister"><br>
+                              <h2 style="display: inline">re-type password:</h2><br>
+                              <input type="text" name="repasswordRegister"><br>
+                              <h2 style="display: inline">email ID:</h2><br>
+                              <input type="text" name="emailRegister"><br>
+                              <br>
+                              <input type="submit" value="Submit">
+                              <input type="reset" value="Clear">
+                            </form>
+                        </td>
+      			    </tr>
+      			</table>
+
+    		</div>
+
+    		<div id="Paris" class="tabcontent">
+                <table style="width:100%">
+                <tr>
+                <td style="width:25%">
+                    <h1>Welcome</h1>
+                    <img src="images/CobraCommander.png" alt="Cobra Commander" style="width:250px;height:250px;">
+                    <h2><span id="komodoUsername">Guest</span></h2>
+                </td>
+                <td style="width:5%"><div class="vl"></div></td>
+                <td style="width:40%">
+                <form action="/" method="POST" id="assetChainForm">
+                    <h2 style="display: inline">Asset Chain locolhost IP:</h2>
+                    <input type="text" id="assetchainLocalhost" autocomplete="off"/>
+                    <br><br>
+                    <h2 style="display: inline">Asset Chain Port number:</h2>
+                    <input type="text" id="assetchainPort" autocomplete="off"/>
+                    <br><br>
+                    <h2 style="display: inline">Asset Chain username:</h2>
+                    <input type="text" id="assetchainUsername" autocomplete="off"/>
+                    <br><br>
+                    <h2 style="display: inline">Asset Chain password:</h2>
+                    <input type="text" id="assetchainPassword" autocomplete="off"/>
+                    <br><br>
+                    <button id="assetchainEnter" onclick="connectAsset()">Enter</button>&nbsp&nbsp<button id="assetchainClear" onclick="komodoclear()">Clear</button>
+                </form>
+                </td>
+                <td style="width:30%">
+                    <button id="assetchaingetnetworkinfo" onclick="acgetnetworkinfo()">Get Network Info</button><br><br>
+                    <button id="assetchaingetbalance" onclick="acgetbalance()">Get Balance</button><br><br>
+                    <button id="assetchaingetwalletinfo" onclick="acgetwalletinfo()">Get Wallet Info</button><br><br>
+                    <button id="assetchaingetnewaddress" onclick="acgetnewaddress()">Get New Address</button><br><br>
+                    <input type="text" id="assetchainsendtoaddress" autocomplete="off" placeholder="Address to Send to"></input><input type="text" id="assetchainsendBTC" autocomplete="off" placeholder="KMD"></input><br><br>
+                    <button id="assetchainSendToB" onclick="acSend()">Send To Address</button><br><br>
+
+                    <button id="assetchainStop" onclick="acstop()">Stop</button><br><br>
+
+
+                </td>
+                </tr>
+                </table>
+                <script src="/javascripts/komodoScript.js"></script>
+    		</div>
+
+    		<div id="Tokyo" class="tabcontent">
+    		<table style="width:100%">
+    		<tr>
+    		<td style="width:98%">
+    		<embed src="https://docs.komodoplatform.com/basic-docs/komodo-api/address.html" style="width:100%; height:700px">
+            </td>
+    		<td style="width:2%"><div class="vl"></div></td>
+    		</tr>
+    		</table>
+
+    		</div>
+
+    		<div id="ChatAPP" class="tabcontent">
+                <form action="/" method="POST" id="chatForm">
+                <ul id="messages"></ul>
+                    <input id="txt" autocomplete="off" autofocus="on" oninput="isTyping()" placeholder="type your message here..." /><button id="txtchatFormbutton">Send</button>
+                </form>
+                <script src="/javascripts/chatScript.js"></script>
+             </div>
+
+
+    		<div id="TTTgame" class="tabcontent">
+                <table style="width:100%">
+                    <tr  valign="top">
+                        <td style="width:50%">
+                            <h2>Tic-Tac-Toe</h2>
+                            <p>Let's play</p>
+                            <table id="TTTgametable">
+                                <tr>
+                                    <td id="tttone" onclick="onclicktttone()"></td>
+                                    <td id="ttttwo" onclick="onclickttttwo()"></td>
+                                    <td id="tttthree" onclick="onclicktttthree()"></td>
+                                </tr>
+                                <tr>
+                                    <td id="tttfour" onclick="onclicktttfour()"></td>
+                                    <td id="tttfive" onclick="onclicktttfive()"></td>
+                                    <td id="tttsix" onclick="onclicktttsix()"></td>
+                                </tr>
+                                <tr>
+                                    <td id="tttseven" onclick="onclicktttseven()"></td>
+                                    <td id="ttteight" onclick="onclickttteight()"></td>
+                                    <td id="tttnine" onclick="onclicktttnine()"></td>
+                                </tr>
+                            </table>
+
+                            <script src="/javascripts/tttscript.js"></script>
+                        </td>
+                        <td style="width:5%">
+                            <div class="vl"></div>
+                        </td>
+                        <td style="width:45%">
+                            <table id="TTTgametable">
+                                <tr>
+                                    <td>
+                                        <h2>Play as:- </h2>
+                                    </td>
+                                    <td>
+                                        <button id="playasBX" onclick="playasBXFun()">X</button><button id="playasBO" onclick="playasBOFun()">O</button>
+                                    </td>
+                                </tr>
+                            </table>
+                            <table id="TTTgameinfo">
+                                <tr>
+                                    <td>
+                                        <h2 style="display: inline"><span>Player 1 playing as:- </span><span id="playasType"></span></h2>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <h2 style="display: inline"><span id="roomDescp"></span><span id="roomName"></span></h2>
+                                    </td>
+                                </tr>
+                                <tr>
+                                <td>
+                                <br><br>
+                                      <h2 style="display: inline">Join existing room:</h2><br>
+                                      <input type="text" id="roomNameText" value="Hello">
+                                      <input type="submit" onclick="myjoinroomFunction()">
+                                      <input type="reset" onclick="myjoinroomclearFunction()">
+                                    <script src="/javascripts/tttscript.js"></script>
+                                </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                 </table>
+             </div>
+
+    	<script src="/javascripts/tabsJS.js"></script>
+
+    	</td>
+    	<td style="width:20%"></td>
+    </tr>
+    </table>
+
+  </body>
+</html>
